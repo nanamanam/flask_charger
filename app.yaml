@@ -1,0 +1,11 @@
+runtime: python39
+
+env_variables:
+  CLOUD_SQL_USERNAME: manam
+  CLOUD_SQL_PASSWORD: m0910959807
+  CLOUD_SQL_DATABASE_NAME: charger_db
+  CLOUD_SQL_HOST: 172.17.0.1
+  CLOUD_SQL_CONNECTION_NAME: noble-airport-391104:asia-southeast1:chargerdb
+
+beta_settings:
+  cloud_sql_instances: noble-airport-391104:asia-southeast1:chargerdb =tcp:3306

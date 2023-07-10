@@ -1,0 +1,486 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <title class="blue-fade">CHARGER DASHBOARD</title>
+  <link rel="icon" href="../static/ev.png">
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.1/dist/css/bootstrap.min.css" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.1/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/3.0.4/socket.io.js" integrity="sha512-aMGMvNYu8Ue4G+fHa359jcPb1u+ytAF+P2SCb+PxrjCdO3n3ZTxJ30zuH39rimUggmTwmh2u7wvQsDTHESnmfQ==" crossorigin="anonymous"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery-csv/1.0.21/jquery.csv.js"></script>
+  <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+  <!-- <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.5.3/dist/css/bootstrap.min.css" integrity="sha384-TX8t27EcRE3e/ihU7zmQxVncDAy5uIKz4rEkgIXeMed4M0jlfIDPvg6uqKI2xXr2" crossorigin="anonymous"> -->
+  <!-- <link href="https://cdn.jsdelivr.net/npm/bootstrap-dark-5@1.1.3/dist/css/bootstrap-night.min.css" rel="stylesheet"> -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-EVSTQN3/azprG1Anm3QDgpJLIm9Nao0Yz1ztcQTwFspd3yD65VohhpuuCOmLASjC" crossorigin="anonymous">
+
+  <style>
+    .ani {
+  height: 35px;
+  background: linear-gradient(-45deg, #028378, #333333, #078f99, #c20e59);
+  /* background: linear-gradient(-45deg, #ee7752, #e73c7e, #23a6d5, #23d5ab); */
+	background-size: 400% 400%;
+  animation: gradient 30s ease infinite;
+}
+.ani-text {
+  /* height: 35px; */
+  font-size: 20px;
+  background: linear-gradient(-45deg, #028378, #333333, #078f99, #c20e59);
+  /* background: linear-gradient(-45deg, #ee7752, #e73c7e, #23a6d5, #23d5ab); */
+	background-size: 400% 400%;
+  animation: gradient 30s ease infinite;
+}
+@keyframes gradient {
+	0% {
+		background-position: 0% 50%;
+	}
+	50% {
+		background-position: 100% 50%;
+	}
+	100% {
+		background-position: 0% 50%;
+	}
+}
+    tr:hover {background-color: #DEEBE2;}
+    th:first-of-type {
+      border-top-left-radius: 10px;
+    }
+    th:last-of-type {
+      border-top-right-radius: 10px;
+    }
+    tr:last-of-type td:first-of-type {
+      border-bottom-left-radius: 10px;
+    }
+    tr:last-of-type td:last-of-type {
+      border-bottom-right-radius: 10px;
+    }
+    .menu-fade {
+      background: -webkit-linear-gradient(#c9c8c8, #555555);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    
+    .tab-sty {
+      /* background: -webkit-linear-gradient(#f71647, #f84803); */
+      text-align: center;
+      /* -webkit-background-clip: text; */
+      /* -webkit-text-fill-color: transparent; */
+      
+    }
+    .text-green{
+      color:#028378;
+      text-shadow: #333333;
+      font-size: 90%;
+      font-weight: bold;
+    }
+    .box_trade:hover {
+      box-shadow: 0 0 20px rgba(253, 177, 12, 0.178); 
+      transform: translateY(-0.25em);
+      
+      /* -webkit-transition: transform 0.5s ease-in-out; */
+    }
+    .box-space{
+      margin-left: 0.15rem !important;
+      margin-right: 0.15rem !important;
+      margin-top: 0.15rem !important;
+      margin-bottom: 0.15rem !important;
+      background: #f8f6f6;
+    }
+    </style>
+</head>
+
+    
+<script type="text/javascript">
+  // function bot_stat(trade_id,stat,type){
+  //   var socket = io()
+  //   console.log("form_change_stat")
+  //   socket.emit('bot-stat',{trade_set_id:trade_id,stat:stat,bot_type:type})
+  // }
+
+  $(document).ready(function() {
+    $('div#charger_detail').hide();
+    $('div#side').hide();
+    $('div.log').hide();
+    $('div.charger_config').hide();
+  });
+
+  function show_user(){
+    var user_count=0;
+    fetch('/api/get_user', {
+      method:'GET', 
+      headers: {'Authorization': 'Basic ' + btoa('{{api_user}}:{{api_key}}'),'Content-Type': 'application/json'},
+    })
+    // fetch('/api/get_user')
+        .then((response) => {
+          return response.json();
+        })
+        .then((data)=>{
+          $('div#side-tool').empty()
+          plot="<table class='show table table-boarder table-hover table-striped'>"
+          for(let i=0;i<data.length;i++){
+            if(data[i]['status']==0){
+              user_count++;
+              plot+="<tr><td><form action='/api/approve' method='post'><input type='hidden' name='user_id' value='"+String(data[i]['id'])+"''><button type='submit' class='btn btn-secondary w-100' style='color: #f8f6f6;'>Approve USER : "+String(data[i]['username'])+"</button></form></td></tr>";
+            }
+          }
+        
+          plot+="</table>";
+          $('div#side-tool').append(plot) 
+          
+          if('{{username}}'=='admin'){
+            if(user_count>0){
+              label="<button type='button' class='btn btn-primary position-relative'>New User<span class='position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger'>"+String(user_count)+"</span></button>"
+              $('div.label_login').append(label)  
+            }else{
+              $('button.new_user_show').hide()
+            }
+          }else{
+            console.log('hide new user');
+            $('button.new_user_show').hide()
+          }
+        })
+        
+  }show_user()
+  // setInterval(show_user, 10000);
+
+  function show_line(){
+    fetch('/api/get_line_auth', {
+      method:'GET', 
+      headers: {'Authorization': 'Basic ' + btoa('{{api_user}}:{{api_key}}'),'Content-Type': 'application/json'},
+    })
+    // fetch('/api/get_line_auth')
+        .then((response) => {
+          return response.json();
+        })
+        .then((data)=>{
+          $('div#line_register').empty()
+          plot="<form action='/api/update_line_auth' method='post'><input type='hidden' name='username' value='{{username}}''><button type='submit' class='btn btn-success' style='background-color: #1ACC45;color: #f8f6f6;'><img src='/static/line.png' height='30px'> Click here to Complete LineBot Register</button></form>";
+          if(data[0]['line_regis']==1){
+            $('div#line_register').append(plot) 
+          }
+        })
+  }show_line()
+    // setInterval(show_line, 10000);
+  // call the method getTowers once to get initial data.
+  // get_fear_index();
+  // get_data();
+  // get_balance();
+  // show_log();
+  function cctv_live(){
+    alert('Live Camera! Open');
+  }
+
+  function show_log(point_id){
+    // console.log(point_id);
+    fetch('/api/get_log', {
+      method:'POST', 
+      headers: {'Authorization': 'Basic ' + btoa('{{api_user}}:{{api_key}}'),'Content-Type': 'application/json'},
+      body: JSON.stringify({
+        point_id: point_id
+      })
+    })
+        .then((response) => {
+          return response.json();
+        })
+        .then((data)=>{
+          $('div.log').empty()
+            sum=0
+            plot="<table class='table table-bordered table-hover tab-sty table-striped'><tr style='background-color:#28A475; color:white;'><th><b>ID</b></th><th>Time</th><th>Log</th></tr>"
+
+            for(let i=0;i<data.length;i++){
+              plot += "<tr><td>"+data[i]['id']+"</td><td>" + data[i]['Time'] + "</td><td>" + data[i]['log'] + "</td></tr>";
+            }
+            plot+="</table>"
+            $('div.log').append(plot)    
+        })
+  }
+
+  function show_config(point_id){
+    // console.log(point_id);
+    fetch('/api/get_charger_config', {
+      method:'POST', 
+      headers: {'Authorization': 'Basic ' + btoa('{{api_user}}:{{api_key}}'),'Content-Type': 'application/json'},
+      body: JSON.stringify({
+        point_id: point_id
+      })
+    })
+        .then((response) => {
+          return response.json();
+        })
+        .then((data)=>{
+          var i=0;
+          $('div.charger_config').empty()
+           
+                    plot="<table class='table table-hover tab-sty table-bordered table-striped'><tr style='background-color:#28A475; color:white;'' ><th colspan=3>Device Config</th></tr>"
+                    plot += "<tr><td>Max Energy</td><td>" + String(data[i]['max_kwh']) + "</td><td>kWh</td></tr>";
+                    plot += "<tr><td>Max Power</td><td>" + String(data[i]['max_kw']) + "</td><td>kW</td></tr>";
+                    plot += "<tr><td>Max Duration</td><td colspan=2>" + String(data[i]['max_a']) + "</td></tr>";
+                    plot += "<tr><td>Max SOC</td><td>" + String(data[i]['max_soc']) + "</td><td>V</td></tr>";
+                    plot += "<tr><td>Stop Button</td><td colspan=2>" + String(data[i]['stop_button']) + "</td></tr>";
+                    plot += "<tr><td>Fan Control</td><td colspan=2>" + String(data[i]['fan_control']) + "</td></tr>";
+                    plot += "<tr><td>AC Max Current</td><td>" + String(data[i]['ac_max_current']) + "</td><td>A</td></tr>";
+                    plot += "<tr><td>AC Rating Current</td><td>" + String(data[i]['ac_rating_current']) + "</td><td>A</td></tr>";
+                    plot += "<tr><td>Billing</td><td colspan=2>" + String(data[i]['is_billing']) + "</td></tr>";
+                    plot += "<tr><td>Currency</td><td colspan=2>" + String(data[i]['currency']) + "</td></tr>";
+                    plot+="</table>"
+                    $('div.charger_config').append(plot) 
+                
+        })
+  }
+
+  function charger_detail(point_id){
+    
+    fetch('/api/get_charger_detail', {
+      method:'POST', 
+      headers: {'Authorization': 'Basic ' + btoa('{{api_user}}:{{api_key}}'),'Content-Type': 'application/json'},
+      body: JSON.stringify({
+        point_id: point_id
+      })
+    })
+  
+    // fetch('/api/get_charger')
+          .then((response)=>{
+            return response.json();
+          })
+          .then((data)=>{
+            var i=0;
+            $('div#charger_detail').empty()
+                // plot="<div class='row' onclick=\"charger_detail("+id+");show_log("+data[i]['point_id']+");\"><div class='col-sm-3'><table class='table tab-sty'><tr><td colspan=2><img src='/static/phipong.PNG' class='img-fluid' alt='Responsive image'></td></tr>"
+                plot="<div class='row' ><div class='col-sm-4'><table class='table tab-sty'><tr><td colspan=2><img onclick=\"charger_detail("+point_id+");show_log("+data[i]['point_id']+");\" src='/static/phipong.PNG' class='img-fluid' alt='Responsive image'></td></tr>"
+                plot+="<tr><td colspan=2><span class='badge rounded-pill bg-secondary w-100' style='font-size:90%;'>"+String(data[i]['name'])+"<span></td></tr>";
+                plot+="<tr><td>Location</td><td>"+String(data[i]['location'])+"</td></tr>";
+                plot+="<tr><td>CCTV</td><td><a href='#'><span class='badge rounded-pill bg-light w-100' onclick=\"cctv_live();\"><font color='#8F908F'>Live view</font><span></a></td></tr>";
+                plot+="<tr><td colspan=2><button style='background-color:#28A475;color:white' class='btn  w-100' onclick=\"$('#main').show();$('div.charger_config').hide();$('div.log').hide();$('div#charger_detail').hide();\">Back to Dashboard</button></td></tr>";
+                plot+="<tr><tr></table></div>";
+                plot+="<div class='col-sm-8'><table class='table table-bordered table-hover table-striped tab-sty'>"
+                plot+="<tr style='background-color:#28A475; color:white;' ><th></th><th colspan=2><center><b>CONNECTOR 1  :  "+String(data[i]['plug1_type'])+"</b></center></th><th colspan=2><center><b>CONNCETOR 2  :  "+String(data[i]['plug2_type'])+"</b></center></th></tr>";
+                plot+="<tr><td>Start Time</td><td class='text-green' colspan=2>"+String(data[i]['start_time_1'])+" </td><td class='text-green' colspan=2>"+String(data[i]['start_time_2'])+" </td></tr>";
+                plot+="<tr><td>Stop Time</td><td class='text-green' colspan=2>"+String(data[i]['stop_time_1'])+" </td><td class='text-green' colspan=2>"+String(data[i]['stop_time_2'])+" </td></tr>";
+                plot+="<tr><td>Status</td><td class='text-green' colspan=2>"+String(data[i]['status_1'])+" </td><td class='text-green' colspan=2>"+String(data[i]['status_2'])+" </td></tr>";
+                plot+="<tr><td>Connector Temp.</td><td class='text-green'>"+String(data[i]['connector_temp_1'])+" </td><td>C</td><td class='text-green'>"+String(data[i]['connector_temp_2'])+" </td><td>C</td></tr>";
+                plot+="<tr><td>Chiller Temp.</td><td class='text-green'>"+String(data[i]['chiller_temp_1'])+" </td><td>C</td><td class='text-green'>"+String(data[i]['chiller_temp_2'])+" </td><td>C</td></tr>";
+                plot+="<tr><td>Present Volt.</td><td class='text-green'>"+String(data[i]['now_volt_1'])+" </td><td>V</td><td class='text-green'>"+String(data[i]['now_volt_2'])+" </td><td>V</td></tr>";
+                plot+="<tr><td>Present Current</td><td class='text-green'>"+String(data[i]['now_current_1'])+" </td><td>A</td><td class='text-green'>"+String(data[i]['now_current_2'])+" </td><td>A</td></tr>";
+                plot+="<tr><td>Present Power</td><td class='text-green'>"+String(data[i]['now_power_1'])+" </td><td>kW</td><td class='text-green'>"+String(data[i]['now_power_2'])+" </td><td>kW</td></tr>";
+                plot+="<tr><td>Present Energy</td><td class='text-green'>"+String(data[i]['now_energy_1'])+" </td><td>kWh</td><td class='text-green'>"+String(data[i]['now_energy_2'])+" </td><td>kWh</td></tr>";
+                plot+="<tr><td>Duration Time</td><td class='text-green' colspan=2>"+String(data[i]['now_duration_1'])+" </td><td class='text-green' colspan=2>"+String(data[i]['now_duration_2'])+" </td></tr>";
+                plot+="<tr><td>Remain Time</td><td class='text-green' colspan=2>"+String(data[i]['remain_time_1'])+" </td><td class='text-green' colspan=2>"+String(data[i]['remain_time_2'])+" </td></tr>";
+                plot+="<tr><td>EV Max Volt.</td><td class='text-green'>"+String(data[i]['ev_max_volt_1'])+" </td><td>V</td><td class='text-green'>"+String(data[i]['ev_max_volt_2'])+" </td><td>V</td></tr>";
+                plot+="<tr><td>EV Target Volt.</td><td class='text-green'>"+String(data[i]['ev_target_volt_1'])+" </td><td>V</td><td class='text-green'>"+String(data[i]['ev_target_volt_2'])+" </td><td>V</td></tr>";
+                plot+="<tr><td>EV Battery SOC</td><td class='text-green'>"+String(data[i]['ev_bat_soc_1'])+" </td><td>V</td><td class='text-green'>"+String(data[i]['ev_bat_soc_2'])+" </td><td>V</td></tr>";
+                plot+="<tr><td>Total Power</td><td class='text-green'>"+String(data[i]['total_power_1'])+" </td><td>kW</td><td class='text-green'>"+String(data[i]['total_power_2'])+" </td><td>kW</td></tr>";
+                plot+="</table><table class='table tab-sty'>"
+                plot+="<tr><form id='api_form'><td>Update API PATH</td><td colspan=3><input name='api' type='text' class='form-control api' value='"+String(data[i]['api_path'])+"'><td><a href='#' type='submit'><span class='badge rounded-pill bg-light w-100' onclick=\"update_api("+String(data[i]['point_id'])+");\"><font color='#8F908F'>Update API</font><span></a></td></form></tr>";
+
+                plot+="</table></div></div>"
+                
+              
+            
+            $('div#charger_detail').append(plot)
+          })
+  }
+
+  function update_api(id){
+    api_path=$('input[name="api"]').val();
+    fetch('/api/update_api', {
+      method:'POST', 
+      headers: {'Authorization': 'Basic ' + btoa('{{api_user}}:{{api_key}}'),'Content-Type': 'application/json'},
+      body: JSON.stringify({
+        api_path: api_path,
+        point_id:id
+      })
+    })
+    .then(()=>{alert('Update Completed');})
+  }
+  function update_status(id,name,location,status){
+    if(status==1){status=0;}
+    else{status=1;}
+    fetch('/api/update_status', {
+      method:'POST', 
+      headers: {'Authorization': 'Basic ' + btoa('{{api_user}}:{{api_key}}'),'Content-Type': 'application/json'},
+      body: JSON.stringify({
+        status: status,
+        name:name,
+        location:location,
+        id:id
+      })
+    })
+    .then(()=>{get_charger();})
+
+    
+  }
+
+
+  function get_charger(){
+    fetch('/api/get_charger', {
+      method:'GET', 
+      headers: {'Authorization': 'Basic ' + btoa('{{api_user}}:{{api_key}}'),'Content-Type': 'application/json'},
+    })
+    // fetch('/api/get_charger')
+          .then((response)=>{
+            return response.json();
+          })
+          .then((data)=>{
+            $('div.charger').empty()
+            sum=0
+            plot="<table class='table table-bordered table-hover tab-sty table-striped'><tr style='background-color: #28A475; color:white;'><th><b>ID</b></th><th>Name</th><th>Location</th><th colspan=5 class='min'><center>CONNCETOR 1</center></th><th>Temp.</th><th colspan=5 class='min'><center>CONNCETOR 2</center></th><th>Temp.</th><th>Status</th></b></tr>"
+
+            for(let i=0;i<data.length;i++){
+              if(data[i]['status']==1){
+                status = "<a href='#'><span onclick=\"update_status('"+String(data[i]['point_id'])+"','"+String(data[i]['name'])+"','"+String(data[i]['location'])+"',"+String(data[i]['status'])+");\" style='font-size:80%;background-color:#28A475;' class='badge rounded-pill'>ONLINE<span></a>"
+              }else{
+                status = "<a href='#'><span onclick=\"update_status('"+String(data[i]['point_id'])+"','"+String(data[i]['name'])+"','"+String(data[i]['location'])+"',"+String(data[i]['status'])+");\" style='font-size:80%' class='badge rounded-pill bg-secondary'>OFFLINE<span></a>"
+                // status = "<a href='/api/update_status/1/"+data[i]['point_id']+"/"+data[i]['name']+"/"+data[i]['location']+"'><span style='font-size:80%' class='badge rounded-pill bg-secondary'>OFFLINE<span></a>"
+              }
+              plot += "<tr><td><a href='#'><span class='badge rounded-pill bg-secondary w-100' style='font-size:90%' onclick=\"show_config("+data[i]['point_id']+");charger_detail("+data[i]['point_id']+");show_log("+data[i]['point_id']+");$('#main').hide();$('div.log').show();$('div#charger_detail').show();$('div#side').hide();$('div.charger_config').show();\">SID" + data[i]['point_id'] + "</span></a></td><td>" + data[i]['name'] + "</td><td>" + data[i]['location'] + "</td><td><font color='green'>" + data[i]['now_energy_1'] + " kWh</font></td><td><font color='green'>" + data[i]['now_power_1'] + " kW</font></td><td><font color='green'>" + data[i]['now_current_1'] + " A</font></td><td><font color='green'>" + data[i]['now_volt_1'] + " V</font></td><td><font color='green'>" + data[i]['status_1'] + "</font></td><td><font color='black'>" + data[i]['connector_temp_1'] + " C</font></td><td><font color='green'>" + data[i]['now_energy_2'] + " kWh</font></td><td><font color='green'>" + data[i]['now_power_2'] + " kW</font></td><td><font color='green'>" + data[i]['now_current_2'] + " A</font></td><td><font color='green'>" + data[i]['now_volt_2'] + " V</font></td><td><font color='green'>" + data[i]['status_2'] + "</font></td><td><font color='black'>" + data[i]['connector_temp_2'] + " C</font></td><td>" + status + "</td></tr>";
+              // plot += "<tr><td><a href='/charger_detail/"+String(data[i]['point_id'])+"'><span class='badge rounded-pill bg-secondary w-100' style='font-size:90%' >SID" + data[i]['point_id'] + "</span></a></td><td>" + data[i]['name'] + "</td><td>" + data[i]['location'] + "</td><td class='min'><font color='green'>" + data[i]['plug1'] + " kW</font></td><td class='min'><font color='green'>" + data[i]['plug2'] + " kW</font></td><td>" + status + "</td><td class='min'>" + data[i]['uptime'] + "</td><td class='min'><a href='/'><span class='badge bg-light' style='font-size:80%'><font color='#737373'>Edit</span></a></td></tr>";
+            }
+            plot+="</table>"
+            $('div.charger').append(plot)          
+          })
+  }
+  get_charger();
+  setInterval(get_charger, 5000);
+  // call the method getTowers every second. So that the data will be updated.
+ 
+  function toggle_but() {
+  var x = document.getElementById("side");
+  if (x.style.display === "none") {
+    x.style.display = "block";
+  } else {
+    x.style.display = "none";
+  }
+}
+  
+</script>
+<script src="https://code.jquery.com/jquery-3.5.1.js"
+          integrity="sha256-QWo7LDvxbWT2tbbQ97B53yJnYU3WhH/C8ycbRAkjPDc="
+          crossorigin="anonymous"></script>
+
+<body>
+
+  <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+    <div class="container-fluid">
+      <a class="navbar-brand" href="#"><font color="#28A475"><b>MAINTENANCE</b></font> DASHBOARD</a>
+      <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+        <span class="navbar-toggler-icon"></span>
+      </button>
+      
+      <div class="btn-group" role="group" aria-label="Basic example">
+        <!-- {% for item in line_regis%}
+        {% if item['line_regis']==1%}
+          <form action='/api/update_line_auth' method='post'>
+            <input type="hidden" name="username" value="{{username}}">
+            <button type="submit" class="btn btn-success" style="background-color: #1ACC45;color: #f8f6f6;"><img src="/static/line.png" height="30px"> Click here to Complete LineBot Register</button>
+          </form>
+        {% endif %}
+        {% endfor %} -->
+        <div id="line_register"></div>
+        </div>
+        <div class="btn-group" role="group" aria-label="Basic example">
+          <form action='/logout_access' method='post'>
+            <button class="new_user_show" onclick="$('div#side').show();" type="button" class="btn btn-secondary"><div class="label_login"></div></button>
+            <button onclick="toggle_but()" type="button" class="btn btn-light">{{username}}</button>
+
+            <button class="btn btn-secondary" type='submit' >Log out</button>
+          </form>
+          </div>
+      
+    </div>
+          
+     
+  </nav>
+    
+      <br>
+
+<div class="container">
+    <script>
+      
+      $(document).ready(function () {
+          window.setTimeout(function() {
+              $(".alert").fadeTo(1000, 0).slideUp(1000, function(){
+                  $(this).remove(); 
+              });
+          }, 3000);
+      });
+    </script>
+    {% with messages = get_flashed_messages() %}
+    {% if messages %}
+    <div class="alert alert-warning" role="alert" id='.alert'>
+      {% for message in messages %}
+        {{ message }}
+      {% endfor %}
+    </div>
+    {% endif %}
+    {% endwith %}
+  <!-- <form id="open_trade">
+  <div class="input-group mb-3">
+    
+    <input name='symbol' class="form-control" list="datalistOptions" id="open_trade_val" placeholder="Type to search...">
+    <datalist id="datalistOptions">
+      <div id="coin"></div>
+    </datalist>
+    <select name='bot_type' id='bot_type' class="form-select" aria-label="Default select example">
+      <option selected value="cover_bot">ID</option>
+      <option value="signal_bot">LOCATION</option>
+    </select>
+    <input class="btn btn-primary" type="submit" id="button-addon2" value="SEARCH">
+    
+  </div>
+</form> -->
+<script>
+//   var socket = io()
+//   $("form#open_trade").submit(function(e) {
+//     console.log("formsubmit")
+//     socket.emit('server',{data:$('#open_trade_val').val(),bot_type:$('#bot_type').val()})
+//     $('#open_trade_val').val("")
+//     e.preventDefault();
+// });
+</script>
+
+<script>
+
+  function mouseOver() {
+    document.getElementById("card").style.color = "white";
+  }
+  function mouseOut() {
+    document.getElementById("card").style.color = "black";
+  }
+
+</script>
+    <div class="row">
+      <div class="row">
+        <div id="charger_detail"></div>
+        <div class='charger_config'></div>
+        <div class="log"></div>
+      </div>
+        <div class="col-sm" id="main">
+          <div class="charger" ></div>
+      </div>
+      <div class="col-sm-3" id="side">        
+        <div id="side-tool">
+          <div class="toast" role="alert" aria-live="assertive" aria-atomic="true">
+            <div class="toast-header">
+              <img src="..." class="rounded me-2" alt="...">
+              <strong class="me-auto">Bootstrap</strong>
+              <small>11 mins ago</small>
+              <button type="button" class="btn-close" data-bs-dismiss="toast" aria-label="Close"></button>
+            </div>
+            <div class="toast-body">
+              Hello, world! This is a toast message.
+            </div>
+          </div>
+        </div>
+    </div>
+    </div>
+<br>
+
+</div>
+
+
+</body>
+</html>
+
